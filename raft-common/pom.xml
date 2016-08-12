@@ -87,6 +87,7 @@
                 <directory>${basedir}/src/main/proto</directory>
                 <includes>
                   <include>Raft.proto</include>
+                  <include>RaftClientProtocol.proto</include>
                 </includes>
               </source>
               <output>${project.build.directory}/generated-sources/java</output>
