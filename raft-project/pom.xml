@@ -31,6 +31,7 @@
     <module>../raft-project-dist</module>
     <module>../raft-common</module>
     <module>../raft-client</module>
+    <module>../raft-server</module>
   </modules>
 
   <properties>
