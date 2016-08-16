@@ -32,6 +32,24 @@
       <groupId>com.hortonworks.raft</groupId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <artifactId>raft-common</artifactId>
+      <groupId>com.hortonworks.raft</groupId>
+      <scope>test</scope>
+      <type>test-jar</type>
+    </dependency>
+    
+    <dependency>
+      <artifactId>raft-client</artifactId>
+      <groupId>com.hortonworks.raft</groupId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <artifactId>raft-client</artifactId>
+      <groupId>com.hortonworks.raft</groupId>
+      <scope>test</scope>
+      <type>test-jar</type>
+    </dependency>
     
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -50,8 +68,26 @@
     </dependency>
 
     <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-common</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <scope>test</scope>
+      <type>test-jar</type>
     </dependency>
   </dependencies>
 
