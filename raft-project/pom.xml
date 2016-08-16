@@ -32,6 +32,7 @@
     <module>../raft-common</module>
     <module>../raft-client</module>
     <module>../raft-server</module>
+    <module>../raft-hadoop</module>
   </modules>
 
   <properties>
@@ -122,6 +123,18 @@
       </dependency>
       <dependency>
         <artifactId>raft-client</artifactId>
+        <groupId>com.hortonworks.raft</groupId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+      </dependency>
+
+      <dependency>
+        <artifactId>raft-server</artifactId>
+        <groupId>com.hortonworks.raft</groupId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>raft-server</artifactId>
         <groupId>com.hortonworks.raft</groupId>
         <version>${project.version}</version>
         <type>test-jar</type>
