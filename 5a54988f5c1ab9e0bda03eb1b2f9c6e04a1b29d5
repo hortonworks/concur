@@ -1,0 +1,7 @@
+Code-Review+2: Jenkins <jenkins@hortonworks.com>
+Verified+1: Zuul <releng@hortonworks.com>
+Submitted-by: Zuul <releng@hortonworks.com>
+Submitted-at: Wed, 20 Mar 2019 04:43:37 -0700
+Reviewed-on: https://gerrit.eng.hortonworks.com/r/313833
+Project: ratis
+Branch: refs/heads/HDP-3.0.100.0
