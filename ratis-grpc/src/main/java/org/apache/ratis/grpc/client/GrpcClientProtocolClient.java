@@ -264,7 +264,9 @@ public class GrpcClientProtocolClient implements Closeable {
   class AsyncStreamObservers {
     /** Request map: callId -> future */
     private final ReplyMap replies = new ReplyMap();
-    private final StreamObserver<RaftClientReplyProto> replyStreamObserver = new StreamObserver<RaftClientReplyProto>() {
+
+    private final StreamObserver<RaftClientReplyProto> replyStreamObserver
+        = new StreamObserver<RaftClientReplyProto>() {
       @Override
       public void onNext(RaftClientReplyProto proto) {
         final long callId = proto.getRpcReply().getCallId();
@@ -278,7 +280,7 @@ public class GrpcClientProtocolClient implements Closeable {
           }
           final LeaderNotReadyException lnre = reply.getLeaderNotReadyException();
           if (lnre != null) {
-            completeReplyExceptionally(lnre, NotLeaderException.class.getName());
+            completeReplyExceptionally(lnre, LeaderNotReadyException.class.getName());
             return;
           }
           handleReplyFuture(callId, f -> f.complete(reply));
