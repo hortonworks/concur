@@ -80,7 +80,7 @@ public class ProtobufRpcEngineShaded implements RpcEngine {
       SocketFactory factory, int rpcTimeout, RetryPolicy connectionRetryPolicy
       ) throws IOException {
     return getProxy(protocol, clientVersion, addr, ticket, conf, factory,
-      rpcTimeout, connectionRetryPolicy, null);
+      rpcTimeout, connectionRetryPolicy, null, null);
   }
 
   @Override
@@ -88,10 +88,10 @@ public class ProtobufRpcEngineShaded implements RpcEngine {
   public <T> ProtocolProxy<T> getProxy(Class<T> protocol, long clientVersion,
       InetSocketAddress addr, UserGroupInformation ticket, Configuration conf,
       SocketFactory factory, int rpcTimeout, RetryPolicy connectionRetryPolicy,
-      AtomicBoolean fallbackToSimpleAuth) throws IOException {
+      AtomicBoolean fallbackToSimpleAuth, AlignmentContext alignmentContext) throws IOException {
 
     final Invoker invoker = new Invoker(protocol, addr, ticket, conf, factory,
-        rpcTimeout, connectionRetryPolicy, fallbackToSimpleAuth);
+        rpcTimeout, connectionRetryPolicy, fallbackToSimpleAuth, alignmentContext);
     return new ProtocolProxy<T>(protocol, (T) Proxy.newProxyInstance(
         protocol.getClassLoader(), new Class[]{protocol}, invoker), false);
   }
@@ -116,15 +116,17 @@ public class ProtobufRpcEngineShaded implements RpcEngine {
     private final long clientProtocolVersion;
     private final String protocolName;
     private AtomicBoolean fallbackToSimpleAuth;
+    private AlignmentContext alignmentContext;
 
     private Invoker(Class<?> protocol, InetSocketAddress addr,
         UserGroupInformation ticket, Configuration conf, SocketFactory factory,
         int rpcTimeout, RetryPolicy connectionRetryPolicy,
-        AtomicBoolean fallbackToSimpleAuth) throws IOException {
+        AtomicBoolean fallbackToSimpleAuth, AlignmentContext alignmentContext) throws IOException {
       this(protocol, Client.ConnectionId.getConnectionId(
           addr, protocol, ticket, rpcTimeout, connectionRetryPolicy, conf),
           conf, factory);
       this.fallbackToSimpleAuth = fallbackToSimpleAuth;
+      this.alignmentContext = alignmentContext;
     }
 
     /**
@@ -211,7 +213,7 @@ public class ProtobufRpcEngineShaded implements RpcEngine {
       try {
         val = (RpcResponseWrapper) client.call(RPC.RpcKind.RPC_PROTOCOL_BUFFER,
             new RpcRequestWrapper(rpcRequestHeader, theRequest), remoteId,
-            fallbackToSimpleAuth);
+            fallbackToSimpleAuth, alignmentContext);
 
       } catch (Throwable e) {
         if (LOG.isTraceEnabled()) {
@@ -471,11 +473,11 @@ public class ProtobufRpcEngineShaded implements RpcEngine {
       String bindAddress, int port, int numHandlers, int numReaders,
       int queueSizePerHandler, boolean verbose, Configuration conf,
       SecretManager<? extends TokenIdentifier> secretManager,
-      String portRangeConfig)
+      String portRangeConfig, AlignmentContext alignmentContext)
       throws IOException {
     return new Server(protocol, protocolImpl, conf, bindAddress, port,
         numHandlers, numReaders, queueSizePerHandler, verbose, secretManager,
-        portRangeConfig);
+        portRangeConfig, alignmentContext);
   }
 
   public static class Server extends RPC.Server {
@@ -496,11 +498,12 @@ public class ProtobufRpcEngineShaded implements RpcEngine {
         Configuration conf, String bindAddress, int port, int numHandlers,
         int numReaders, int queueSizePerHandler, boolean verbose,
         SecretManager<? extends TokenIdentifier> secretManager,
-        String portRangeConfig)
+        String portRangeConfig, AlignmentContext alignmentContext)
         throws IOException {
       super(bindAddress, port, null, numHandlers,
-          numReaders, queueSizePerHandler, conf, classNameBase(protocolImpl
-              .getClass().getName()), secretManager, portRangeConfig);
+          numReaders, queueSizePerHandler, conf, serverNameFromClass(protocolImpl
+              .getClass()), secretManager, portRangeConfig);
+      setAlignmentContext(alignmentContext);
       this.verbose = verbose;
       registerProtocolAndImpl(RPC.RpcKind.RPC_PROTOCOL_BUFFER, protocolClass,
           protocolImpl);

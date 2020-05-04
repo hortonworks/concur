@@ -418,6 +418,7 @@
         <groupId>org.apache.ratis</groupId>
         <artifactId>ratis-thirdparty-hadoop</artifactId>
         <version>${ratis.thirdparty.version}</version>
+        <scope>provided</scope>
       </dependency>
 
       <!-- External dependencies -->

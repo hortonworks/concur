@@ -31,6 +31,7 @@
     <dependency>
       <artifactId>ratis-thirdparty-hadoop</artifactId>
       <groupId>org.apache.ratis</groupId>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
