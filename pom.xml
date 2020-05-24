@@ -23,7 +23,7 @@
 
   <artifactId>ratis</artifactId>
   <groupId>org.apache.ratis</groupId>
-  <version>0.5.0.7.1.1.0-SNAPSHOT</version>
+  <version>0.5.0.7.1.2.0-SNAPSHOT</version>
   <name>Apache Ratis</name>
   <packaging>pom</packaging>
   <description>
@@ -212,7 +212,7 @@
 
     <shell-executable>bash</shell-executable>
 
-    <hadoop.version>3.1.1.7.1.1.0-SNAPSHOT</hadoop.version>
+    <hadoop.version>3.1.1.7.1.2.0-SNAPSHOT</hadoop.version>
     <hadoop-maven-plugins.version>${hadoop.version}</hadoop-maven-plugins.version>
 
     <!-- define the Java language version used by the compiler -->
