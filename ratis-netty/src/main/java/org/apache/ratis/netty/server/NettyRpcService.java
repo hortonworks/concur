@@ -143,17 +143,17 @@ public final class NettyRpcService extends RaftServerRpcWithProxy<NettyRpcProxy,
 
   @Override
   public void closeImpl() throws IOException {
-    bossGroup.shutdownGracefully();
-    workerGroup.shutdownGracefully();
+    final ChannelFuture f = getChannel().close();
+    f.syncUninterruptibly();
+    bossGroup.shutdownGracefully(0, 100, TimeUnit.MILLISECONDS);
+    workerGroup.shutdownGracefully(0, 100, TimeUnit.MILLISECONDS);
     try {
       bossGroup.awaitTermination(1000, TimeUnit.MILLISECONDS);
       workerGroup.awaitTermination(1000, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       LOG.error("Interrupt EventLoopGroup terminate", e);
     }
-    final ChannelFuture f = getChannel().close();
     super.closeImpl();
-    f.syncUninterruptibly();
   }
 
   @Override

@@ -36,7 +36,7 @@ import org.apache.ratis.proto.RaftProtos.RaftClientRequestProto.TypeCase;
 import org.apache.ratis.protocol.RaftClientRequest;
 import org.apache.ratis.protocol.RaftPeer;
 import org.apache.ratis.protocol.RaftPeerId;
-import org.apache.ratis.server.metrics.RatisMetrics;
+import org.apache.ratis.metrics.RatisMetrics;
 import org.apache.ratis.thirdparty.com.google.common.annotations.VisibleForTesting;
 import org.apache.ratis.util.Preconditions;
 
@@ -76,6 +76,13 @@ public final class RaftServerMetrics extends RatisMetrics {
     RaftServerMetrics serverMetrics = new RaftServerMetrics(raftServer);
     metricsMap.put(raftServer.getMemberId().toString(), serverMetrics);
     return serverMetrics;
+  }
+
+  public static void removeRaftServerMetrics(RaftServerImpl raftServer) {
+    String memberId = raftServer.getMemberId().toString();
+    if (metricsMap.containsKey(memberId)) {
+      metricsMap.remove(memberId);
+    }
   }
 
   private RaftServerMetrics(RaftServerImpl server) {
@@ -203,8 +210,16 @@ public final class RaftServerMetrics extends RatisMetrics {
     registry.gauge(REQUEST_QUEUE_SIZE, () -> queueSize);
   }
 
+  boolean removeNumPendingRequestsGauge() {
+    return registry.remove(REQUEST_QUEUE_SIZE);
+  }
+
   void addNumPendingRequestsByteSize(Gauge byteSize) {
     registry.gauge(REQUEST_BYTE_SIZE, () -> byteSize);
+  }
+
+  boolean removeNumPendingRequestsByteSize() {
+    return registry.remove(REQUEST_BYTE_SIZE);
   }
 
   void onRequestByteSizeLimitHit() {

@@ -21,7 +21,7 @@ import static org.apache.ratis.server.impl.StateMachineMetrics.RATIS_STATEMACHIN
 import static org.apache.ratis.server.impl.StateMachineMetrics.RATIS_STATEMACHINE_METRICS_DESC;
 import static org.apache.ratis.server.impl.StateMachineMetrics.STATEMACHINE_TAKE_SNAPSHOT_TIMER;
 import static org.apache.ratis.server.metrics.RaftLogMetrics.LOG_APPENDER_INSTALL_SNAPSHOT_METRIC;
-import static org.apache.ratis.server.metrics.RatisMetrics.RATIS_APPLICATION_NAME_METRICS;
+import static org.apache.ratis.metrics.RatisMetrics.RATIS_APPLICATION_NAME_METRICS;
 
 import org.apache.log4j.Level;
 import org.apache.ratis.BaseTest;
@@ -203,6 +203,7 @@ public abstract class RaftSnapshotBaseTest extends BaseTest {
         Assert.assertTrue(snapshotFiles.stream().anyMatch(RaftSnapshotBaseTest::exists));
         return null;
       }, 10, ONE_SECOND, "snapshotFile.exist", LOG);
+      verifyTakeSnapshotMetric(cluster.getLeader());
       logs = storageDirectory.getLogSegmentFiles();
     } finally {
       cluster.shutdown();
@@ -234,10 +235,15 @@ public abstract class RaftSnapshotBaseTest extends BaseTest {
       verifyInstallSnapshotMetric(cluster.getLeader());
       RaftServerTestUtil.waitAndCheckNewConf(cluster, change.allPeersInNewConf, 0, null);
 
+      Timer timer = getTakeSnapshotTimer(cluster.getLeader());
+      long count = timer.getCount();
+
       // restart the peer and check if it can correctly handle conf change
       cluster.restartServer(cluster.getLeader().getId(), false);
       assertLeaderContent(cluster);
-      verifyTakeSnapshotMetric(cluster.getLeader());
+
+      // verify that snapshot was taken when stopping the server
+      Assert.assertTrue(count < timer.getCount());
     } finally {
       cluster.shutdown();
     }
@@ -250,6 +256,11 @@ public abstract class RaftSnapshotBaseTest extends BaseTest {
   }
 
   private static void verifyTakeSnapshotMetric(RaftServerImpl leader) {
+    Timer timer = getTakeSnapshotTimer(leader);
+    Assert.assertTrue(timer.getCount() > 0);
+  }
+
+  private static Timer getTakeSnapshotTimer(RaftServerImpl leader) {
     MetricRegistryInfo info = new MetricRegistryInfo(leader.getMemberId().toString(),
         RATIS_APPLICATION_NAME_METRICS,
         RATIS_STATEMACHINE_METRICS, RATIS_STATEMACHINE_METRICS_DESC);
@@ -257,7 +268,6 @@ public abstract class RaftSnapshotBaseTest extends BaseTest {
     Assert.assertTrue(opt.isPresent());
     RatisMetricRegistry metricRegistry = opt.get();
     Assert.assertNotNull(metricRegistry);
-    Timer timer = metricRegistry.timer(STATEMACHINE_TAKE_SNAPSHOT_TIMER);
-    Assert.assertTrue(timer.getCount() > 0);
+    return metricRegistry.timer(STATEMACHINE_TAKE_SNAPSHOT_TIMER);
   }
 }

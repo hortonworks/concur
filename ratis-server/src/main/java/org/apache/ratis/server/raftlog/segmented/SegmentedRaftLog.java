@@ -208,7 +208,7 @@ public class SegmentedRaftLog extends RaftLog {
     this.storage = storage;
     this.stateMachine = stateMachine;
     segmentMaxSize = RaftServerConfigKeys.Log.segmentSizeMax(properties).getSize();
-    this.raftLogMetrics = new RaftLogMetrics(memberId.getPeerId().toString());
+    this.raftLogMetrics = new RaftLogMetrics(memberId.toString());
     this.cache = new SegmentedRaftLogCache(memberId, storage, properties, raftLogMetrics);
     this.fileLogWorker = new SegmentedRaftLogWorker(memberId, stateMachine,
         submitUpdateCommitEvent, server, storage, properties, raftLogMetrics);
@@ -225,6 +225,7 @@ public class SegmentedRaftLog extends RaftLog {
           .getOpenLogFile(openSegment.getStartIndex());
     }
     fileLogWorker.start(Math.max(cache.getEndIndex(), lastIndexInSnapshot),
+        Math.min(cache.getLastIndexInClosedSegments(), lastIndexInSnapshot),
         openSegmentFile);
   }
 
@@ -248,7 +249,7 @@ public class SegmentedRaftLog extends RaftLog {
         // entries to the state machine
         boolean keepEntryInCache = (paths.size() - i++) <= cache.getMaxCachedSegments();
         final Timer.Context loadSegmentContext = raftLogMetrics.getRaftLogLoadSegmentTimer().time();
-        cache.loadSegment(pi, keepEntryInCache, logConsumer);
+        cache.loadSegment(pi, keepEntryInCache, logConsumer, lastIndexInSnapshot);
         loadSegmentContext.stop();
       }
 
@@ -324,7 +325,8 @@ public class SegmentedRaftLog extends RaftLog {
       // TODO if the cache is hitting the maximum size and we cannot evict any
       // segment's cache, should block the new entry appending or new segment
       // allocation.
-      cache.evictCache(server.getFollowerNextIndices(), fileLogWorker.getFlushIndex(), server.getLastAppliedIndex());
+      cache.evictCache(server.getFollowerNextIndices(), fileLogWorker.getSafeCacheEvictIndex(),
+          server.getLastAppliedIndex());
     }
   }
 
@@ -492,6 +494,13 @@ public class SegmentedRaftLog extends RaftLog {
     // if the last index in snapshot is larger than the index of the last
     // log entry, we should delete all the log entries and their cache to avoid
     // gaps between log segments.
+
+    // Close open log segment if entries are already included in snapshot
+    LogSegment openSegment = cache.getOpenSegment();
+    if (openSegment != null && openSegment.getEndIndex() <= lastSnapshotIndex) {
+      fileLogWorker.closeLogSegment(openSegment);
+      cache.clear();
+    }
   }
 
   @Override

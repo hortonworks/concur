@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.management.ObjectName;
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -125,10 +126,7 @@ public class RaftServerImpl implements RaftServerProtocol, RaftServerAsynchronou
   }
 
   LogAppender newLogAppender(
-      LeaderState leaderState, RaftPeer peer, Timestamp lastRpcTime, long nextIndex,
-      boolean attendVote) {
-    final FollowerInfo f = new FollowerInfo(getMemberId(), peer, lastRpcTime, nextIndex, attendVote,
-        rpcSlownessTimeoutMs);
+      LeaderState leaderState, FollowerInfo f) {
     return getProxy().getFactory().newLogAppender(this, leaderState, f);
   }
 
@@ -142,6 +140,10 @@ public class RaftServerImpl implements RaftServerProtocol, RaftServerAsynchronou
 
   int getMaxTimeoutMs() {
     return maxTimeoutMs;
+  }
+
+  int getRpcSlownessTimeoutMs() {
+    return rpcSlownessTimeoutMs;
   }
 
   int getRandomTimeoutMs() {
@@ -273,14 +275,26 @@ public class RaftServerImpl implements RaftServerProtocol, RaftServerAsynchronou
       } catch (Exception ignored) {
         LOG.warn("{}: Failed to close state", getMemberId(), ignored);
       }
-      leaderElectionMetrics.unregister();
-      raftServerMetrics.unregister();
+      try {
+        leaderElectionMetrics.unregister();
+        raftServerMetrics.unregister();
+        RaftServerMetrics.removeRaftServerMetrics(this);
+      } catch (Exception ignored) {
+        LOG.warn("{}: Failed to unregister metric", getMemberId(), ignored);
+      }
       if (deleteDirectory) {
         final RaftStorageDirectory dir = state.getStorage().getStorageDir();
-        try {
-          FileUtils.deleteFully(dir.getRoot());
-        } catch(Exception ignored) {
-          LOG.warn("{}: Failed to remove RaftStorageDirectory {}", getMemberId(), dir, ignored);
+        for (int i = 0; i < FileUtils.NUM_ATTEMPTS; i ++) {
+          try {
+            FileUtils.deleteFully(dir.getRoot());
+            LOG.info("{}: Succeed to remove RaftStorageDirectory {}", getMemberId(), dir);
+            break;
+          } catch (NoSuchFileException e) {
+            LOG.warn("{}: Some file does not exist {}", getMemberId(), dir, e);
+          } catch (Exception ignored) {
+            LOG.error("{}: Failed to remove RaftStorageDirectory {}", getMemberId(), dir, ignored);
+            break;
+          }
         }
       }
     });
@@ -354,7 +368,7 @@ public class RaftServerImpl implements RaftServerProtocol, RaftServerAsynchronou
   Collection<CommitInfoProto> getCommitInfos() {
     final List<CommitInfoProto> infos = new ArrayList<>();
     // add the commit info of this server
-    infos.add(commitInfoCache.update(getPeer(), state.getLog().getLastCommittedIndex()));
+    infos.add(updateCommitInfoCache());
 
     // add the commit infos of other servers
     if (isLeader()) {
@@ -946,6 +960,10 @@ public class RaftServerImpl implements RaftServerProtocol, RaftServerAsynchronou
     }
   }
 
+  private CommitInfoProto updateCommitInfoCache() {
+    return commitInfoCache.update(getPeer(), state.getLog().getLastCommittedIndex());
+  }
+
   @SuppressWarnings("checkstyle:parameternumber")
   private CompletableFuture<AppendEntriesReplyProto> appendEntriesAsync(
       RaftPeerId leaderId, long leaderTerm, TermIndex previous, long leaderCommit, long callId, boolean initializing,
@@ -1017,6 +1035,7 @@ public class RaftServerImpl implements RaftServerProtocol, RaftServerAsynchronou
       final AppendEntriesReplyProto reply;
       synchronized(this) {
         state.updateStatemachine(leaderCommit, currentTerm);
+        updateCommitInfoCache();
         final long n = isHeartbeat? state.getLog().getNextIndex(): entries[entries.length - 1].getIndex() + 1;
         final long matchIndex = entries.length != 0 ? entries[entries.length - 1].getIndex() :
             RaftLog.INVALID_LOG_INDEX;
@@ -1050,7 +1069,7 @@ public class RaftServerImpl implements RaftServerProtocol, RaftServerAsynchronou
     final TermIndex installSnapshot = inProgressInstallSnapshotRequest.get();
     if (installSnapshot != null) {
       LOG.info("{}: Failed appendEntries as snapshot ({}) installation is in progress", getMemberId(), installSnapshot);
-      return installSnapshot.getIndex();
+      return state.getNextIndex();
     }
 
     // Check that the first log entry is greater than the snapshot index in the latest snapshot.
@@ -1166,7 +1185,7 @@ public class RaftServerImpl implements RaftServerProtocol, RaftServerAsynchronou
         // update the committed index
         // re-load the state machine if this is the last chunk
         if (snapshotChunkRequest.getDone()) {
-          state.reloadStateMachine(lastIncludedIndex, leaderTerm);
+          state.reloadStateMachine(lastIncludedIndex);
         }
       } finally {
         updateLastRpcTime(FollowerState.UpdateType.INSTALL_SNAPSHOT_COMPLETE);
@@ -1225,25 +1244,29 @@ public class RaftServerImpl implements RaftServerProtocol, RaftServerAsynchronou
         stateMachine.notifyInstallSnapshotFromLeader(getRoleInfoProto(), firstAvailableLogTermIndex)
             .whenComplete((reply, exception) -> {
               if (exception != null) {
-                LOG.error("{}: State Machine failed to install snapshot", getMemberId(), exception);
+                LOG.warn("{}: Failed to notify StateMachine to InstallSnapshot. Exception: {}",
+                    getMemberId(), exception.getMessage());
                 inProgressInstallSnapshotRequest.compareAndSet(firstAvailableLogTermIndex, null);
                 return;
               }
 
               if (reply != null) {
+                LOG.info("{}: StateMachine successfully installed snapshot index {}. Reloading the StateMachine.",
+                    getMemberId(), reply.getIndex());
                 stateMachine.pause();
-                state.reloadStateMachine(reply.getIndex(), leaderTerm);
                 state.updateInstalledSnapshotIndex(reply);
+                state.reloadStateMachine(reply.getIndex());
               }
               inProgressInstallSnapshotRequest.compareAndSet(firstAvailableLogTermIndex, null);
             });
 
-        return ServerProtoUtils.toInstallSnapshotReplyProto(leaderId, getMemberId(),
-            currentTerm, InstallSnapshotResult.SUCCESS, -1);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("{}: Snapshot Installation Request received and is in progress", getMemberId());
+        }
+      } else {
+        LOG.info("{}: Snapshot Installation by StateMachine is in progress.", getMemberId());
       }
 
-      LOG.info("{}: StateMachine installSnapshot is in progress: {}",
-          getMemberId(), inProgressInstallSnapshotRequest.get());
       return ServerProtoUtils.toInstallSnapshotReplyProto(leaderId, getMemberId(),
           currentTerm, InstallSnapshotResult.IN_PROGRESS, -1);
     }

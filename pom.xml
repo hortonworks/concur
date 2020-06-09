@@ -415,12 +415,6 @@
         <version>${ratis.thirdparty.version}</version>
       </dependency>
 
-      <dependency>
-        <groupId>org.apache.ratis</groupId>
-        <artifactId>ratis-thirdparty-hadoop</artifactId>
-        <version>${ratis.thirdparty.version}</version>
-      </dependency>
-
       <!-- External dependencies -->
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -668,6 +662,7 @@
           <configuration>
             <failIfNoTests>false</failIfNoTests>
             <reuseForks>false</reuseForks>
+            <trimStackTrace>false</trimStackTrace>
             <forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
             <argLine>-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError</argLine>
             <systemPropertyVariables>
@@ -722,6 +717,7 @@
           <configuration>
             <!-- Lets us define more exclusions in child-modules without overriding these -->
             <excludes combine.children="append">
+              <exclude>.github/*.md</exclude>
               <exclude>target/*</exclude>
             </excludes>
           </configuration>

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -12,17 +13,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-github:
-  description: "Open source Java implementation for Raft consensus protocol."
-  homepage: http://ratis.incubator.apache.org/
-  labels:
-    - raft
-    - consensus-protocol
-    - consensus
-    - java
-  enabled_merge_buttons:
-    squash:  true
-    merge:   false
-    rebase:  false
-  notifications:
-    jira_options: worklog label link
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+cd "$DIR/../.." || exit 1
+
+if [ ! "$SONAR_TOKEN" ]; then
+  echo "SONAR_TOKEN environment variable should be set"
+  exit 1
+fi
+mvn -B verify -DskipShade -DskipTests org.sonarsource.scanner.maven:sonar-maven-plugin:3.6.0.1398:sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=apache -Dsonar.projectKey=apache_incubator-ratis

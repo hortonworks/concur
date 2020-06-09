@@ -20,9 +20,11 @@ package org.apache.ratis.metrics.impl;
 import java.util.Map;
 import java.util.SortedMap;
 
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
@@ -42,6 +44,9 @@ public class RatisMetricRegistryImpl implements RatisMetricRegistry {
 
   private final MetricRegistryInfo info;
 
+  private JmxReporter jmxReporter;
+  private ConsoleReporter consoleReporter;
+
   public RatisMetricRegistryImpl(MetricRegistryInfo info) {
     super();
     this.info = info;
@@ -55,6 +60,11 @@ public class RatisMetricRegistryImpl implements RatisMetricRegistry {
   @Override
   public Counter counter(String name) {
     return metricRegistry.counter(getMetricName(name));
+  }
+
+  @Override
+  public boolean remove(String name) {
+    return metricRegistry.remove(getMetricName(name));
   }
 
   @Override public Gauge gauge(String name, MetricSupplier<Gauge> supplier) {
@@ -115,5 +125,25 @@ public class RatisMetricRegistryImpl implements RatisMetricRegistry {
         register(prefix + "." + entry.getKey(), entry.getValue());
       }
     }
+  }
+
+  @Override
+  public void setJmxReporter(JmxReporter jmxReporter) {
+    this.jmxReporter = jmxReporter;
+  }
+
+  @Override
+  public JmxReporter getJmxReporter() {
+    return this.jmxReporter;
+  }
+
+  @Override
+  public void setConsoleReporter(ConsoleReporter consoleReporter) {
+    this.consoleReporter = consoleReporter;
+  }
+
+  @Override
+  public ConsoleReporter getConsoleReporter() {
+    return this.consoleReporter;
   }
 }

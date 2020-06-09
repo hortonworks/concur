@@ -44,12 +44,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+
 /**
  * In-memory cache for a log segment file. All the updates will be first written
  * into LogSegment then into corresponding files in the same order.
  *
  * This class will be protected by the {@link SegmentedRaftLog}'s read-write lock.
  */
+@SuppressWarnings("checkstyle:FinalClass")
 public class LogSegment implements Comparable<Long> {
 
   //TODO: This class needs to be made final to address checkstyle issue. However, TestCacheEviction fails as Mockito
@@ -144,6 +146,10 @@ public class LogSegment implements Comparable<Long> {
     });
     LOG.info("Successfully read {} entries from segment file {}", entryCount, file);
 
+    if (isOpen) {
+      end = segment.getEndIndex();
+    }
+
     final int expectedEntryCount = Math.toIntExact(end - start + 1);
     final boolean corrupted = entryCount != expectedEntryCount;
     if (corrupted) {
@@ -180,7 +186,7 @@ public class LogSegment implements Comparable<Long> {
       Preconditions.assertSame(expectedLastIndex, last.getTermIndex().getIndex(), "Index at the last record");
       Preconditions.assertSame(expectedStart, records.get(0).getTermIndex().getIndex(), "Index at the first record");
     }
-    if (!isOpen && !corrupted) {
+    if (!corrupted) {
       Preconditions.assertSame(expectedEnd, expectedLastIndex, "End/last Index");
     }
   }
