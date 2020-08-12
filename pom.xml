@@ -23,7 +23,7 @@
 
   <artifactId>ratis</artifactId>
   <groupId>org.apache.ratis</groupId>
-  <version>0.5.0.7.1.3.0-SNAPSHOT</version>
+  <version>0.5.0.7.1.4.0-SNAPSHOT</version>
   <name>Apache Ratis</name>
   <packaging>pom</packaging>
   <description>
@@ -213,7 +213,7 @@
 
     <shell-executable>bash</shell-executable>
 
-    <hadoop.version>3.1.1.7.1.3.0-SNAPSHOT</hadoop.version>
+    <hadoop.version>3.1.1.7.1.4.0-SNAPSHOT</hadoop.version>
     <hadoop-maven-plugins.version>${hadoop.version}</hadoop-maven-plugins.version>
 
     <!-- define the Java language version used by the compiler -->
@@ -222,7 +222,7 @@
     <maven.min.version>3.3.9</maven.min.version>
 
     <!-- Contains all shaded thirdparty dependencies -->
-    <ratis.thirdparty.version>0.4.0.7.1.3.0-SNAPSHOT</ratis.thirdparty.version>
+    <ratis.thirdparty.version>0.4.0.7.1.4.0-SNAPSHOT</ratis.thirdparty.version>
 
     <!-- Need these for the protobuf compiler. *MUST* match what is in ratis-thirdparty -->
     <shaded.protobuf.version>3.11.0</shaded.protobuf.version>
