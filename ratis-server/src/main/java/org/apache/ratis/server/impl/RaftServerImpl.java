@@ -863,7 +863,6 @@ class RaftServerImpl implements RaftServer.Division,
     }
   }
 
-  @Override
   public RaftClientReply setConfiguration(SetConfigurationRequest request) throws IOException {
     return waitForReply(request, setConfigurationAsync(request));
   }
@@ -871,7 +870,6 @@ class RaftServerImpl implements RaftServer.Division,
   /**
    * Handle a raft configuration change request from client.
    */
-  @Override
   public CompletableFuture<RaftClientReply> setConfigurationAsync(SetConfigurationRequest request) throws IOException {
     LOG.info("{}: receive setConfiguration {}", getMemberId(), request);
     assertLifeCycleState(LifeCycle.States.RUNNING);

@@ -26,7 +26,6 @@ import org.apache.ratis.protocol.exceptions.RaftException;
 import org.apache.ratis.thirdparty.io.grpc.stub.StreamObserver;
 import org.apache.ratis.proto.RaftProtos.RaftClientReplyProto;
 import org.apache.ratis.proto.RaftProtos.RaftClientRequestProto;
-import org.apache.ratis.proto.RaftProtos.SetConfigurationRequestProto;
 import org.apache.ratis.proto.grpc.RaftClientProtocolServiceGrpc.RaftClientProtocolServiceImplBase;
 import org.apache.ratis.util.CollectionUtils;
 import org.apache.ratis.util.JavaUtils;
@@ -142,14 +141,6 @@ public class GrpcClientProtocolService extends RaftClientProtocolServiceImplBase
 
   RaftPeerId getId() {
     return idSupplier.get();
-  }
-
-  @Override
-  public void setConfiguration(SetConfigurationRequestProto proto,
-      StreamObserver<RaftClientReplyProto> responseObserver) {
-    final SetConfigurationRequest request = ClientProtoUtils.toSetConfigurationRequest(proto);
-    GrpcUtil.asyncCall(responseObserver, () -> protocol.setConfigurationAsync(request),
-        ClientProtoUtils::toRaftClientReplyProto);
   }
 
   @Override

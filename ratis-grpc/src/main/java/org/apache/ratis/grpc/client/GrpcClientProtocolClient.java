@@ -170,10 +170,9 @@ public class GrpcClientProtocolClient implements Closeable {
         .groupInfo(request);
   }
 
-
   RaftClientReplyProto setConfiguration(
       SetConfigurationRequestProto request) throws IOException {
-    return blockingCall(() -> blockingStub
+    return blockingCall(() -> adminBlockingStub
         .withDeadlineAfter(requestTimeoutDuration.getDuration(), requestTimeoutDuration.getUnit())
         .setConfiguration(request));
   }
