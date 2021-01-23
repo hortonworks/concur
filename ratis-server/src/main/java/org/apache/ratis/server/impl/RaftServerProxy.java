@@ -294,6 +294,8 @@ class RaftServerProxy implements RaftServer {
         .setId(getId())
         .setAddress(getServerRpc().getInetSocketAddress())
         .setDataStreamAddress(getDataStreamServerRpc().getInetSocketAddress())
+        .setClientAddress(getServerRpc().getClientServerAddress())
+        .setAdminAddress(getServerRpc().getAdminServerAddress())
         .build();
   }
 

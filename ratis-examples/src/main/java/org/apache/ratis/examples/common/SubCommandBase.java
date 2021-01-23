@@ -34,15 +34,25 @@ public abstract class SubCommandBase {
   private String raftGroupId = "demoRaftGroup123";
 
   @Parameter(names = {"--peers", "-r"}, description =
-      "Raft peers (format: name:host:port:dataStreamPort,"
-          + "name:host:port)", required = true)
+      "Raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,"
+          + "...)", required = true)
   private String peers;
 
   public static RaftPeer[] parsePeers(String peers) {
     return Stream.of(peers.split(",")).map(address -> {
       String[] addressParts = address.split(":");
-      return RaftPeer.newBuilder().setId(addressParts[0]).setAddress(addressParts[1] + ":" + addressParts[2])
-          .setDataStreamAddress(addressParts[1] + ":" + addressParts[3]).build();
+      RaftPeer.Builder builder = RaftPeer.newBuilder();
+      builder.setId(addressParts[0]).setAddress(addressParts[1] + ":" + addressParts[2]);
+      if (addressParts.length >= 4) {
+        builder.setDataStreamAddress(addressParts[1] + ":" + addressParts[3]);
+        if (addressParts.length >= 5) {
+          builder.setClientAddress(addressParts[1] + ":" + addressParts[4]);
+          if (addressParts.length >= 6) {
+            builder.setAdminAddress(addressParts[1] + ":" + addressParts[5]);
+          }
+        }
+      }
+      return builder.build();
     }).toArray(RaftPeer[]::new);
   }
 
